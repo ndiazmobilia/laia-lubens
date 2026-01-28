@@ -166,14 +166,6 @@ def reload_fechas_pacientes():
     if processed_files_count == 0:
         return {"message": "Found files, but none could be processed successfully.", "success": False}
 
-    # 5. Query last 10 records from the newly populated SQLite database and return as confirmation
-    try:
-        with sqlite3.connect(db_name) as conn:
-            # No need to query for preview records
-            pass
-    except sqlite3.Error as e:
-        raise HTTPException(status_code=500, detail=f"Failed to connect to database: {e}")
-
     return {
         "message": f"Successfully processed {processed_files_count} files and updated table '{table_name}'.",
         "success": True
@@ -243,14 +235,6 @@ def reload_facturas():
     if processed_files_count == 0:
         return {"message": "Found files, but none could be processed successfully.", "success": False}
 
-    # 5. Query last 10 records from the newly populated SQLite database and return as confirmation
-    try:
-        with sqlite3.connect(db_name) as conn:
-            # No need to query for preview records
-            pass
-    except sqlite3.Error as e:
-        raise HTTPException(status_code=500, detail=f"Failed to connect to database: {e}")
-
     return {
         "message": f"Successfully processed {processed_files_count} files and updated table '{table_name}'.",
         "success": True
@@ -318,14 +302,6 @@ def reload_cobros():
     if processed_files_count == 0:
         return {"message": "Found files, but none could be processed successfully.", "success": False}
 
-    # 5. Query last 10 records from the newly populated SQLite database and return as confirmation
-    try:
-        with sqlite3.connect(db_name) as conn:
-            # No need to query for preview records
-            pass
-    except sqlite3.Error as e:
-        raise HTTPException(status_code=500, detail=f"Failed to connect to database: {e}")
-
     return {
         "message": f"Successfully processed {processed_files_count} files and updated table '{table_name}'.",
         "success": True
@@ -355,6 +331,7 @@ def reload_citas():
         )
 
     # 2. Get authenticated Google Drive service
+    service = gdrive.get_drive_service()
     if not service:
         raise HTTPException(
             status_code=500,
@@ -391,14 +368,6 @@ def reload_citas():
 
     if processed_files_count == 0:
         return {"message": "Found files, but none could be processed successfully.", "success": False}
-
-    # 5. Query last 10 records from the newly populated SQLite database and return as confirmation
-    try:
-        with sqlite3.connect(db_name) as conn:
-            # No need to query for preview records
-            pass
-    except sqlite3.Error as e:
-        raise HTTPException(status_code=500, detail=f"Failed to connect to database: {e}")
 
     return {
         "message": f"Successfully processed {processed_files_count} files and updated table '{table_name}'.",
