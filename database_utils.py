@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime
 import io
 
-def parse_html_to_db(file_source, db_name, table_name):
+def parse_html_to_db(file_source, db_name, table_name, file_name="<stream>"):
     """
     Parses an HTML file (assumed to be an .xls file with HTML content),
     cleans the data, infers SQL types, creates/updates a table in an SQLite database,
@@ -19,7 +19,7 @@ def parse_html_to_db(file_source, db_name, table_name):
         tables = pd.read_html(file_source)
 
         if not tables:
-            print(f"No tables found in the HTML file: {file_source}")
+            print(f"No tables found in the HTML file: {file_name}")
             return
 
         df = tables[0]
@@ -90,7 +90,7 @@ def parse_html_to_db(file_source, db_name, table_name):
                 column_defs.append(col_def)
 
             create_table_sql = f'CREATE TABLE IF NOT EXISTS {table_name} ({", ".join(column_defs)})'
-            print(f"Created table sql '{create_table_sql}'")
+            # print(f"Created table sql '{create_table_sql}'")
             cursor.execute(create_table_sql)
 
             # Replace NaN with None for SQL NULL values
@@ -151,31 +151,31 @@ def parse_html_to_db(file_source, db_name, table_name):
                                 try:
                                     dt_obj = datetime.strptime(value, '%d/%m/%y')
                                 except ValueError:
-                                    dt_obj = pd.to_datetime(value) # Let pandas handle other formats
+                                    dt_obj = pd.to_datetime(value, dayfirst=True) # Let pandas handle other formats
                                 values.append(dt_obj.isoformat())
                             else:
-                                values.append(pd.to_datetime(value).isoformat())
+                                values.append(pd.to_datetime(value, dayfirst=True).isoformat())
                         except (ValueError, TypeError):
                             values.append(None)
                     else: # TEXT or other unhandled types
                         values.append(str(value))
-                print(f"{values}")
+                # print(f"{values}")
                 cursor.execute(insert_sql, tuple(values))
 
             conn.commit()
 
-            print(f"Successfully parsed '{file_source}' and populated table '{table_name}' in '{db_name}'.")
+            print(f"Successfully parsed '{file_name}' and populated table '{table_name}' in '{db_name}'.")
 
         finally:
             conn.close()
 
     except FileNotFoundError:
-        print(f"Error: The file '{file_source}' was not found.")
+        print(f"Error: The file '{file_name}' was not found.")
     except Exception as e:
         print(f"An error occurred while parsing the HTML file or interacting with the database: {e}")
 
 
-def parse_xlsx_to_db(file_stream, db_name, table_name):
+def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
     """
     Parses an XLSX file, cleans the data, infers SQL types, creates/updates a table
     in an SQLite database, and populates it with data.
@@ -249,7 +249,7 @@ def parse_xlsx_to_db(file_stream, db_name, table_name):
                 column_defs.append(col_def)
 
             create_table_sql = f'CREATE TABLE IF NOT EXISTS {table_name} ({", ".join(column_defs)})'
-            print(f"Created table sql '{create_table_sql}'")
+            # print(f"Created table sql '{create_table_sql}'")
             cursor.execute(create_table_sql)
 
             # Replace NaN with None for SQL NULL values
@@ -305,10 +305,10 @@ def parse_xlsx_to_db(file_stream, db_name, table_name):
                                 try:
                                     dt_obj = datetime.strptime(value, '%d/%m/%y')
                                 except ValueError:
-                                    dt_obj = pd.to_datetime(value)
+                                    dt_obj = pd.to_datetime(value, dayfirst=True)
                                 values.append(dt_obj.isoformat())
                             else:
-                                values.append(pd.to_datetime(value).isoformat())
+                                values.append(pd.to_datetime(value, dayfirst=True).isoformat())
                         except (ValueError, TypeError):
                             values.append(None)
                     else:
@@ -317,7 +317,7 @@ def parse_xlsx_to_db(file_stream, db_name, table_name):
 
             conn.commit()
 
-            print(f"Successfully parsed '{file_stream}' and populated table '{table_name}' in '{db_name}'.")
+            print(f"Successfully parsed '{file_name}' and populated table '{table_name}' in '{db_name}'.")
 
         finally:
             conn.close()

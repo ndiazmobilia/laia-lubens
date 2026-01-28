@@ -76,7 +76,7 @@ def reload_datos_personales():
 
             if file_stream:
                 # Use the new utility function to parse HTML-like XLS files and populate the DB
-                database_utils.parse_html_to_db(file_stream, db_name, table_name)
+                database_utils.parse_html_to_db(file_stream, db_name, table_name, file['name'])
                 processed_files_count += 1
             else:
                 # The file was skipped (e.g., unsupported format)
@@ -153,7 +153,7 @@ def reload_fechas_pacientes():
 
             if file_stream:
                 # Use the new utility function to parse HTML-like XLS files and populate the DB
-                database_utils.parse_html_to_db(file_stream, db_name, table_name)
+                database_utils.parse_html_to_db(file_stream, db_name, table_name, file['name'])
                 processed_files_count += 1
             else:
                 # The file was skipped (e.g., unsupported format)
@@ -230,7 +230,7 @@ def reload_facturas():
 
             if file_stream:
                 # Use the new utility function to parse HTML-like XLS files and populate the DB
-                database_utils.parse_html_to_db(file_stream, db_name, table_name)
+                database_utils.parse_html_to_db(file_stream, db_name, table_name, file['name'])
                 processed_files_count += 1
             else:
                 # The file was skipped (e.g., unsupported format)
@@ -305,7 +305,7 @@ def reload_cobros():
 
             if file_stream:
                 # Use the new utility function to parse HTML-like XLS files and populate the DB
-                database_utils.parse_html_to_db(file_stream, db_name, table_name)
+                database_utils.parse_html_to_db(file_stream, db_name, table_name, file['name'])
                 processed_files_count += 1
             else:
                 # The file was skipped (e.g., unsupported format)
@@ -355,7 +355,6 @@ def reload_citas():
         )
 
     # 2. Get authenticated Google Drive service
-    service = gdrive.get_drive_service()
     if not service:
         raise HTTPException(
             status_code=500,
@@ -380,7 +379,7 @@ def reload_citas():
 
             if file_stream:
                 # Use the new utility function to parse XLSX files and populate the DB
-                database_utils.parse_xlsx_to_db(file_stream, db_name, table_name)
+                database_utils.parse_xlsx_to_db(file_stream, db_name, table_name, file['name'])
                 processed_files_count += 1
             else:
                 # The file was skipped (e.g., unsupported format)
