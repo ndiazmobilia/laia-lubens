@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pandas
+openpyxl
+xlrd
+lxml
+google-api-python-client
+google-auth-oauthlib
+python-dotenv
+SQLAlchemy
