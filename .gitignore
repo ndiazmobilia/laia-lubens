@@ -117,3 +117,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 output/
+
+# Google Cloud Service Account Key
+service_account.json
