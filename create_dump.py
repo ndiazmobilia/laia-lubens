@@ -9,7 +9,7 @@ os.makedirs(os.path.dirname(dump_path), exist_ok=True)
 
 try:
     conn = sqlite3.connect(db_path)
-    with open(dump_path, 'w') as f:
+    with open(dump_path, 'w', encoding="utf-8") as f:
         for line in conn.iterdump():
             f.write(f"{line}\n")
     conn.close()
