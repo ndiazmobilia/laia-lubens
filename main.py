@@ -100,6 +100,8 @@ async def reload_all():
 
         if source_name == "citas" or source_name == "doctores":
             parse_func = database_utils.parse_xlsx_to_db
+        elif source_name == "datos_tratamientos":
+            parse_func = database_utils.parse_html_to_db
 
         result = await _process_drive_source(source_name, table_name, db_name, parse_func)
         results.append(result)
@@ -170,6 +172,17 @@ async def reload_doctores():
     table_name = "doctores"
     db_name = "output/data.db"
     result = await _process_drive_source(source_name, table_name, db_name, database_utils.parse_xlsx_to_db)
+    return result
+
+@app.post("/reload_datos_tratamientos", tags=["Data Loading"])
+async def reload_datos_tratamientos():
+    """
+    Reloads data for the 'datos_tratamientos' source.
+    """
+    source_name = "datos_tratamientos"
+    table_name = "datos_tratamientos"
+    db_name = "output/data.db"
+    result = await _process_drive_source(source_name, table_name, db_name, database_utils.parse_html_to_db)
     return result
 
 if __name__ == "__main__":
