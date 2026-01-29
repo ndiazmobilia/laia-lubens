@@ -1,7 +1,7 @@
 import sqlite3
 
 db_name = 'output/data.db'
-table_name = 'personal_data'
+table_name = 'datos_tratamientos'
 
 try:
     conn = sqlite3.connect(db_name)

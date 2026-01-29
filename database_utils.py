@@ -17,7 +17,6 @@ def parse_html_to_db(file_source, db_name, table_name, file_name="<stream>"):
     """
     try:
         tables = pd.read_html(file_source)
-
         if not tables:
             print(f"No tables found in the HTML file: {file_name}")
             return
@@ -62,7 +61,7 @@ def parse_html_to_db(file_source, db_name, table_name, file_name="<stream>"):
                     sql_type = "INTEGER"
                 elif 'Fecha' in col_name:
                     sql_type = "DATETIME"
-                elif "Importe" in col_name or "Saldo" in col_name: # Added for Importe/Saldo
+                elif "Importe" in col_name or "Saldo" in col_name or "Precio" in col_name or "Coste" in col_name: # Added for Importe/Saldo
                     sql_type = "REAL"
                 elif 'object' in str(dtype):
                     # Try to infer more specific types for object columns
@@ -221,7 +220,7 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
                     sql_type = "INTEGER"
                 elif 'Fecha' in col_name:
                     sql_type = "DATETIME"
-                elif "Importe" in col_name or "Saldo" in col_name:
+                elif "Importe" in col_name or "Saldo" in col_name or "Precio" in col_name or "Coste" in col_name:
                     sql_type = "REAL"
                 elif 'object' in str(dtype):
                     # Try to infer more specific types for object columns
@@ -331,14 +330,16 @@ if __name__ == '__main__':
     # file_path = 'examples/FechasPacientes-01.01.2023-31.12.2025.xls'
     # file_path = 'examples/Cobros-Todo2026.xls'
     # file_path = 'examples/Presupuestos-Todo-2026.xls'
-    file_path = 'examples/Doctoralia-informe_de_citas-01 - 28 feb 2025 (1).xlsx'
+    # file_path = 'examples/Doctoralia-informe_de_citas-01 - 28 feb 2025 (1).xlsx'
+    file_path = 'examples/exportarTratsExcel (18).xls'
 
     db_name = 'output/data.db'
-    table_name = 'citas'
+    table_name = 'datos_tratamientos'
     # For testing parse_html_to_db
     # with open('examples/DatosPersonales-01.01.2020-31.12.2025.xls', 'rb') as f:
     #     parse_html_to_db(f, db_name, 'personal_data_test')
 
     # For testing parse_xlsx_to_db
     with open(file_path, 'rb') as f:
-        parse_xlsx_to_db(f, db_name, table_name)
+        parse_html_to_db(f, db_name, table_name)
+# parse_xlsx_to_db(f, db_name, table_name)
