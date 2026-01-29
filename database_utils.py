@@ -187,7 +187,6 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
         # Read the XLSX file directly from the byte stream
         # file_stream.read() returns bytes, io.BytesIO wraps it into a file-like object
         df = pd.read_excel(io.BytesIO(file_stream.read()))
-
         # Clean column names for SQL (replace spaces, special chars)
         original_columns = df.columns.tolist()
         cleaned_columns = []
@@ -215,7 +214,6 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
 
             for col_name, dtype in df.dtypes.items():
                 sql_type = "TEXT" # Default
-
                 if col_name == 'Código':
                     sql_type = "INTEGER"
                 elif 'Fecha' in col_name:
@@ -232,7 +230,10 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
                         else:
                             sql_type = "REAL"
                     # Check if it can be converted to datetime
-                    elif pd.to_datetime(df[col_name], errors='coerce', dayfirst=True, format=['%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d', '%Y-%m/%d', '%d/%m/%y', '%d-%m-%y']).notna().all():
+                    # elif pd.to_datetime(df[col_name], errors='coerce', dayfirst=True).notna().all():
+
+                    # Check if it can be converted to datetime
+                    elif pd.to_datetime(df[col_name], errors='coerce', dayfirst=True).notna().all():
                         sql_type = "DATETIME"
                 elif 'int' in str(dtype):
                     sql_type = "INTEGER"
@@ -300,6 +301,7 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
                                 values.append(None)
                     elif sql_type == "DATETIME":
                         try:
+
                             if isinstance(value, str):
                                 # Attempt to parse common date formats
                                 # Prioritize explicit formats to avoid inference issues
