@@ -232,7 +232,7 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
                         else:
                             sql_type = "REAL"
                     # Check if it can be converted to datetime
-                    elif pd.to_datetime(df[col_name], errors='coerce').notna().all():
+                    elif pd.to_datetime(df[col_name], errors='coerce', dayfirst=True).notna().all():
                         sql_type = "DATETIME"
                 elif 'int' in str(dtype):
                     sql_type = "INTEGER"
@@ -301,13 +301,31 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
                     elif sql_type == "DATETIME":
                         try:
                             if isinstance(value, str):
-                                try:
-                                    dt_obj = datetime.strptime(value, '%d/%m/%y')
-                                except ValueError:
-                                    dt_obj = pd.to_datetime(value, dayfirst=True)
-                                values.append(dt_obj.isoformat())
+                                # Attempt to parse common date formats
+                                # Prioritize explicit formats to avoid inference issues
+                                common_date_formats = ['%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d', '%Y-%m-%d', '%d/%m/%y', '%d-%m-%y']
+                                parsed = False
+                                for fmt in common_date_formats:
+                                    try:
+                                        dt_obj = datetime.strptime(value, fmt)
+                                        values.append(dt_obj.isoformat())
+                                        parsed = True
+                                        break
+                                    except ValueError:
+                                        continue
+                                if not parsed:
+                                    # Fallback to pandas' robust parser if explicit formats fail
+                                    dt_obj = pd.to_datetime(value, dayfirst=True, errors='coerce')
+                                    if pd.notna(dt_obj):
+                                        values.append(dt_obj.isoformat())
+                                    else:
+                                        values.append(None)
                             else:
-                                values.append(pd.to_datetime(value, dayfirst=True).isoformat())
+                                dt_obj = pd.to_datetime(value, dayfirst=True, errors='coerce')
+                                if pd.notna(dt_obj):
+                                    values.append(dt_obj.isoformat())
+                                else:
+                                    values.append(None)
                         except (ValueError, TypeError):
                             values.append(None)
                     else:
