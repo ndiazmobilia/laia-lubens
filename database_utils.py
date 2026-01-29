@@ -232,7 +232,7 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
                         else:
                             sql_type = "REAL"
                     # Check if it can be converted to datetime
-                    elif pd.to_datetime(df[col_name], errors='coerce', dayfirst=True).notna().all():
+                    elif pd.to_datetime(df[col_name], errors='coerce', dayfirst=True, format=['%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d', '%Y-%m/%d', '%d/%m/%y', '%d-%m-%y']).notna().all():
                         sql_type = "DATETIME"
                 elif 'int' in str(dtype):
                     sql_type = "INTEGER"
@@ -349,15 +349,16 @@ if __name__ == '__main__':
     # file_path = 'examples/Cobros-Todo2026.xls'
     # file_path = 'examples/Presupuestos-Todo-2026.xls'
     # file_path = 'examples/Doctoralia-informe_de_citas-01 - 28 feb 2025 (1).xlsx'
-    file_path = 'examples/exportarTratsExcel (18).xls'
+    # file_path = 'examples/exportarTratsExcel (18).xls'
+    file_path = 'examples/Doctores.xlsx'
 
     db_name = 'output/data.db'
-    table_name = 'datos_tratamientos'
+    table_name = 'doctores'
     # For testing parse_html_to_db
     # with open('examples/DatosPersonales-01.01.2020-31.12.2025.xls', 'rb') as f:
     #     parse_html_to_db(f, db_name, 'personal_data_test')
 
     # For testing parse_xlsx_to_db
     with open(file_path, 'rb') as f:
-        parse_html_to_db(f, db_name, table_name)
-# parse_xlsx_to_db(f, db_name, table_name)
+        # parse_html_to_db(f, db_name, table_name)
+        parse_xlsx_to_db(f, db_name, table_name)
