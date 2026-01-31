@@ -120,3 +120,6 @@ output/
 
 # Google Cloud Service Account Key
 service_account.json
+
+# SQL dump file
+data_dump.sql
