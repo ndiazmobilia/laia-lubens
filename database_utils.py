@@ -40,6 +40,13 @@ def parse_html_to_db(file_source, db_name, table_name, file_name="<stream>"):
         # Filter out columns named "nan"
         df = df.loc[:, df.columns != 'nan']
 
+        # Specific modification for 'tratamientos' table
+        if table_name == "tratamientos":
+            if len(df.columns) > 0 and df.columns[0] == "Código":
+                df.rename(columns={"Código": "CódigoPaciente"}, inplace=True)
+                print(f"Renamed first column 'Código' to 'CódigoPaciente' for table '{table_name}'.")
+
+        print(df.columns)
         # Connect to SQLite database
         conn = sqlite3.connect(db_name)
         cursor = conn.cursor()
@@ -352,15 +359,16 @@ if __name__ == '__main__':
     # file_path = 'examples/Presupuestos-Todo-2026.xls'
     # file_path = 'examples/Doctoralia-informe_de_citas-01 - 28 feb 2025 (1).xlsx'
     # file_path = 'examples/exportarTratsExcel (18).xls'
-    file_path = 'examples/Doctores.xlsx'
+    # file_path = 'examples/Doctores.xlsx'
+    file_path = 'examples/Tratamientos_todo2026 2.xls'
 
     db_name = 'output/data.db'
-    table_name = 'doctores'
+    table_name = 'tratamientos'
     # For testing parse_html_to_db
     # with open('examples/DatosPersonales-01.01.2020-31.12.2025.xls', 'rb') as f:
     #     parse_html_to_db(f, db_name, 'personal_data_test')
 
     # For testing parse_xlsx_to_db
     with open(file_path, 'rb') as f:
-        # parse_html_to_db(f, db_name, table_name)
-        parse_xlsx_to_db(f, db_name, table_name)
+        parse_html_to_db(f, db_name, table_name)
+        # parse_xlsx_to_db(f, db_name, table_name)

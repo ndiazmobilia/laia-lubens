@@ -1,11 +1,12 @@
 import sqlite3
 
 db_name = 'output/data.db'
-table_name = 'datos_tratamientos'
+table_name = 'tratamientos'
 
 try:
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
+
 
     print(f"--- First 3 rows from '{table_name}' table ---")
     cursor.execute(f"SELECT * FROM {table_name} LIMIT 3")

@@ -1,26 +1,9 @@
 import difflib
 import logging
-import os
-import shutil
-import traceback
+import sqlite3
 from collections import defaultdict
 from datetime import datetime
 from typing import List, Dict, Any
-
-from dotenv import load_dotenv
-
-from browser import download_path
-from browser import get_chrome_instance
-from cliniwin import download_cliniwin_treatment_stats
-from cliniwin_parser import parse_treatments
-from doctoralia import download_doctoralia_appointments
-from doctoralia_parser import parse_appointments
-
-# Load environment variables from .env file
-load_dotenv()
-
-user = os.getenv('CLINIWIN_USERNAME')
-password = os.getenv('CLINIWIN_PASSWORD')
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,70 +23,116 @@ doctors = {
     "10": "Macarena Remohi Martínez-Medina",
     "20": "Melissa Rivera",
     "23": "Carmen Herrero",
-    "7": "María Florencia Cerviche"
+    "7": "María Florencia Cerviche",
+    "24": "Clara Garcia Saiz",
+    "25": "Macarena Ramirez Nunez",
+    "26": "Maria Contreras Miquel",
+    "8": "Beatriz Marquez Garcia",
+    "6": "Abigail Cevallos Madrid",
+    "27": "Julia Romanenko",
+    "28": "Celia Gil Manzanero",
+    "29": "Marta Bravo Diaz",
+    "30": "Victoria Arocena Fernandez",
+    "31": "Raul Miguel Biot",
+    "32": "Julio Garcia Algarra",
+    "33": "Andrea Vicente Pardo"
 }
 
 
-def perform_check_appointments(from_date, to_date):
-    result = []
-    chrome = get_chrome_instance()
-    appointments_file_name = None
-    treatments_stats_file_name = None
+def get_data_for_date_range(db_path: str, table_name: str, date_column: str, start_date: datetime,
+                            end_date: datetime) -> list[dict]:
+    """
+    Retrieves data from a specified table within a given date range.
+
+    Args:
+        db_path: The path to the SQLite database file.
+        table_name: The name of the table to query.
+        date_column: The name of the column containing date information.
+        start_date: The start date (inclusive) for filtering.
+        end_date: The end date (inclusive) for filtering.
+
+    Returns:
+        A list of dictionaries, where each dictionary represents a row of data.
+    """
+    conn = None
     try:
-        appointments_file_name = download_doctoralia_appointments(chrome, from_date, to_date)
-        try:
-            treatments_stats_file_name = download_cliniwin_treatment_stats(chrome, from_date, to_date, user, password)
-            result = perform_appointment_checks(f'{download_path}/{appointments_file_name}',
-                                                f'{download_path}/{treatments_stats_file_name}')
-            result = {"success": "true", "data": result}
-        except Exception:
-            result = {
-                "success": "false",
-                "error": {
-                    "code": "SCRAPING_ERROR",
-                    "message": "There was an error scraping treatment stats in Cliniwin"}
-            }
-            logging.error("There was an error scraping Cliniwin")
-            logging.error(traceback.print_exc())
-            screenshot_filename = f'/{download_path}/screenshot-cliniwin.png'
-            chrome.save_screenshot(screenshot_filename)
-            pass
-        pass
-    except Exception:
-        result = {
-            "success": "false",
-            "error": {
-                "code": "SCRAPING_ERROR",
-                "message": "There was an error scraping appointments in Doctoralia"}
-        }
-        logging.error("There was an error scraping Doctoralia")
-        logging.error(traceback.print_exc())
-        screenshot_filename = f'/{download_path}/screenshot-doctoralia.png'
-        chrome.save_screenshot(screenshot_filename)
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row  # This allows accessing columns by name
+        cursor = conn.cursor()
+
+        # Convert datetime objects to ISO format strings for SQLite comparison
+        start_date_str = start_date.isoformat()
+        end_date_str = end_date.isoformat()
+
+        query = f"SELECT * FROM {table_name} WHERE {date_column} BETWEEN ? AND ?"
+
+        cursor.execute(query, (start_date_str, end_date_str))
+
+        rows = cursor.fetchall()
+
+        # Convert sqlite3.Row objects to dictionaries
+        data = [dict(row) for row in rows]
+        return data
+
+    except sqlite3.Error as e:
+        print(f"SQLite error in get_data_for_date_range (Table: {table_name}, Column: {date_column}): {e}")
+        return []
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return []
     finally:
-        # Code that will run no matter what
-        logging.info("Quitting ChromeDriver")
-        chrome.quit()
-        # Path to the WebDriverManager cache directory
-        logging.info("Removing WebDriverManager cache directory")
-        cache_dir = os.path.expanduser("~/.wdm")
-        # Delete the cache directory if it exists
-        if os.path.exists(cache_dir):
-            shutil.rmtree(cache_dir)
-        if os.path.exists(appointments_file_name):
-            logging.info(f"Removing file {appointments_file_name}.")
-            os.remove(appointments_file_name)
-        if os.path.exists(treatments_stats_file_name):
-            logging.info(f"Removing file {treatments_stats_file_name}.")
-            os.remove(treatments_stats_file_name)
-
-    return result
+        if conn:
+            conn.close()
 
 
-def perform_appointment_checks(appointments_file_name, treatments_file_name):
-    appointments = parse_appointments(appointments_file_name)
-    treatments = parse_treatments(treatments_file_name)
+def get_treatments(db_path: str, start_date: datetime,
+                            end_date: datetime) -> list[dict]:
+    """
+    Retrieves data from a specified table within a given date range.
 
+    Args:
+        db_path: The path to the SQLite database file.
+        start_date: The start date (inclusive) for filtering.
+        end_date: The end date (inclusive) for filtering.
+
+    Returns:
+        A list of dictionaries, where each dictionary represents a row of data.
+    """
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row  # This allows accessing columns by name
+        cursor = conn.cursor()
+
+        # Convert datetime objects to ISO format strings for SQLite comparison
+        start_date_str = start_date.isoformat()
+        end_date_str = end_date.isoformat()
+
+        query = f"SELECT * FROM tratamientos WHERE 'Fecharealizado' BETWEEN ? AND ?"
+        cursor.execute(query, (start_date_str, end_date_str))
+        # Nombre']} {entry['Apellido 1']} {entry['Apellido 2'
+        rows = cursor.fetchall()
+
+        # Convert sqlite3.Row objects to dictionaries
+        data = [dict(row) for row in rows]
+        return data
+
+    except sqlite3.Error as e:
+        print(f"SQLite error in get_data_for_date_range (Table: {table_name}, Column: {date_column}): {e}")
+        return []
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def perform_appointment_checks(from_date, to_date):
+    appointments = get_data_for_date_range("output/data.db", "citas", "Fecha", from_date, to_date)
+    treatments = get_data_for_date_range("output/data.db", "tratamientos", "Fecharealizado", from_date, to_date)
+    # print(appointments)
+    # print(treatments)
     appointments = [
         appointment for appointment in appointments
         if appointment['Paciente'] not in (None, '')
@@ -111,11 +140,10 @@ def perform_appointment_checks(appointments_file_name, treatments_file_name):
 
     # Normalize dates in doctoralia_appointments
     for appt in appointments:
-        appt['Fecha_normalizada'] = normalize_date(appt['Fecha'], '%d/%m/%Y')
-
+        appt['Fecha_normalizada'] = normalize_date(appt['Fecha'], '%Y-%m-%dT%H:%M:%S')
     # Normalize dates in cliniwin_treatments
     for treatment in treatments:
-        treatment['Fecha_normalizada'] = normalize_date(treatment['Fecha realizado'], '%d/%m/%y')
+        treatment['Fecha_normalizada'] = normalize_date(treatment['Fecharealizado'], '%Y-%m-%dT%H:%M:%S')
 
     # Step 2: Group data by normalized date
     grouped_appointments = defaultdict(list)
@@ -132,6 +160,7 @@ def perform_appointment_checks(appointments_file_name, treatments_file_name):
     alerts = []
     # Iterate through dates and compare
     all_dates = set(grouped_appointments.keys()).union(grouped_treatments.keys())
+
     for date in all_dates:
         appointments = grouped_appointments.get(date, [])
         treatments = grouped_treatments.get(date, [])
@@ -181,6 +210,8 @@ def check_treatments(appointments: List[Dict[str, Any]], treatments: List[Dict[s
     alerts = []
 
     # Build a list of normalized names from cliniwin_treatments
+    for entry in treatments:
+        print(entry)
     cliniwin_names = [
         normalize_name(f"{entry['Nombre']} {entry['Apellido 1']} {entry['Apellido 2']}".strip())
         for entry in treatments
@@ -259,7 +290,7 @@ def check_doctors(
 
 
 # Step 1: Normalize the dates to ISO 8601 format
-def normalize_date(date_str, input_format, output_format='%Y-%m-%d'):
+def normalize_date(date_str, input_format, output_format='%d-%m-%Y'):
     try:
         return datetime.strptime(date_str, input_format).strftime(output_format)
     except ValueError:
@@ -308,7 +339,12 @@ cliniwin_treatments = [
      'Num. Doctor': '15'}
 ]
 
-doctoralia_appointments_file_name = "/home/ndiaz/workspace/appointment-daily-checks/downloads/doctoralia_appointments_from_date_to_date.1731883112200.xlsx"
-cliniwin_treatments_file_name = "/home/ndiaz/workspace/appointment-daily-checks/downloads/cliniwin_treatments_stats_from_date_to_date.1731883142005.xls"
+if __name__ == "__main__":
+    DB_PATH = "output/data.db"
+    # Define your date range (example: entire year 2023)
+    start_date = datetime(2026, 1, 1)
+    end_date = datetime(2026, 12, 31, 23, 59, 59)  # End of day for inclusivity
 
-# perform_appointment_checks(doctoralia_appointments_file_name, cliniwin_treatments_file_name)
+    print(f"--- Daily Check Data Retrieval ---")
+    print(f"Date Range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+    perform_appointment_checks(start_date, end_date)

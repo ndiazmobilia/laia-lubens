@@ -1,11 +1,23 @@
-import io
-import pandas as pd
-import sqlite3
-from fastapi import FastAPI, HTTPException
+import logging
 
-import database_utils
+from fastapi import FastAPI
+from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
+
 import config
+import database_utils
 import gdrive
+from daily_check import get_data_for_date_range
+from daily_checks import perform_appointment_checks
+
+
+# Define the request body model
+class DateRangeRequest(BaseModel):
+    start_date: datetime
+    end_date: datetime
+    table_name: Optional[str] = "citas" # Example: allow specifying table, default to citas
+    date_column: Optional[str] = "Fecha" # Example: allow specifying date column, default to Fecha
 
 # Initialize the FastAPI application
 app = FastAPI(
@@ -193,6 +205,28 @@ async def reload_trabajos_laboratorios():
     db_name = "output/data.db"
     result = await _process_drive_source(source_name, table_name, db_name, database_utils.parse_html_to_db)
     return result
+
+
+@app.post("/daily_checks", tags=["Data Loading"])
+async def daily_checks(request: DateRangeRequest):
+    from_date = request.start_date
+    to_date = request.end_date
+    logging.info(f"Check appointments from dates {from_date} to {to_date}")
+    alerts = perform_appointment_checks(from_date, to_date)
+    if alerts:
+        return {
+            "message": f"Found {len(alerts)} records alerts",
+            "data": alerts
+        }
+    else:
+        return {
+            "message": f"No alerts found in the specified date range or an error occurred.",
+            "data": []
+        }
+
+
+
+
 
 if __name__ == "__main__":
     import uvicorn
