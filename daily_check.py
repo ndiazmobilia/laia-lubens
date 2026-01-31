@@ -35,7 +35,7 @@ def get_data_for_date_range(db_path: str, table_name: str, date_column: str, sta
         return data
 
     except sqlite3.Error as e:
-        print(f"SQLite error in get_data_for_date_range: {e}")
+        print(f"SQLite error in get_data_for_date_range (Table: {table_name}, Column: {date_column}): {e}")
         return []
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
@@ -47,34 +47,45 @@ def get_data_for_date_range(db_path: str, table_name: str, date_column: str, sta
 if __name__ == "__main__":
     DB_PATH = "output/data.db"
     
-    # Example Usage:
-    # Define your date range
+    # Define your date range (example: entire year 2023)
     start_date = datetime(2023, 1, 1)
-    end_date = datetime(2023, 12, 31)
+    end_date = datetime(2023, 12, 31, 23, 59, 59) # End of day for inclusivity
 
-    print(f"Retrieving data from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+    print(f"--- Daily Check Data Retrieval ---")
+    print(f"Date Range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
 
-    # Example for 'citas' table
-    # You need to know the actual date column name in your 'citas' table
-    # For demonstration, let's assume it's 'Fecha'
-    print("\n--- Data from 'citas' table ---")
-    citas_data = get_data_for_date_range(DB_PATH, "citas", "Fecha", start_date, end_date)
-    if citas_data:
-        for row in citas_data[:5]: # Print first 5 rows as example
-            print(row)
-        print(f"... and {len(citas_data) - 5} more rows.")
-    else:
-        print("No data found for 'citas' in the specified date range.")
+    # Define tables and their corresponding date columns for filtering
+    tables_to_check = {
+        "citas": "Fecha",
+        "cobros": "Fechadecobro",
+        "datos_personales": "Fechadenacimiento",
+        "facturas": "Fechafacturado",
+        "fechas_pacientes": "Fechaprimeravisita",
+        "presupuestos": "Fechacreación",
+        "tratamientos": "Fecharealizado",
+    }
 
-    # Example for 'doctores' table (assuming it also has a 'Fecha' column for some reason)
-    # You would replace 'Fecha' with the actual date column name for doctors
-    print("\n--- Data from 'doctores' table ---")
-    doctores_data = get_data_for_date_range(DB_PATH, "doctores", "Fecha", start_date, end_date)
-    if doctores_data:
-        for row in doctores_data[:5]: # Print first 5 rows as example
-            print(row)
-        print(f"... and {len(doctores_data) - 5} more rows.")
-    else:
-        print("No data found for 'doctores' in the specified date range.")
+    all_retrieved_data = {}
 
-    # Add more examples for other tables as needed
+    for table_name, date_column in tables_to_check.items():
+        print(f"\n--- Retrieving data for '{table_name}' (filtered by '{date_column}') ---")
+        data = get_data_for_date_range(DB_PATH, table_name, date_column, start_date, end_date)
+        all_retrieved_data[table_name] = data
+
+        if data:
+            print(f"Found {len(data)} records.")
+            print("First 5 records (or fewer if less than 5):")
+            for row in data[:5]:
+                print(row)
+        else:
+            print(f"No data found for '{table_name}' in the specified date range or an error occurred.")
+
+    print("\n--- Summary of Retrieved Data ---")
+    for table_name, data in all_retrieved_data.items():
+        print(f"'{table_name}': {len(data)} records")
+
+    # You can now process 'all_retrieved_data' further as needed.
+    # For example, to access citas data:
+    # citas_data = all_retrieved_data.get("citas", [])
+    # for cita in citas_data:
+    #     print(f"Cita: {cita.get('Paciente')} on {cita.get('Fecha')}")
