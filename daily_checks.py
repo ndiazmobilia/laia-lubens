@@ -42,7 +42,8 @@ doctors = {
 def get_data_for_date_range(db_path: str, table_name: str, date_column: str, start_date: datetime,
                             end_date: datetime) -> list[dict]:
     """
-    Retrieves data from a specified table within a given date range.
+    Retrieves data from a specified table within a given date range,
+    joining with the datos_personales table to include patient name information.
 
     Args:
         db_path: The path to the SQLite database file.
@@ -63,8 +64,18 @@ def get_data_for_date_range(db_path: str, table_name: str, date_column: str, sta
         # Convert datetime objects to ISO format strings for SQLite comparison
         start_date_str = start_date.isoformat()
         end_date_str = end_date.isoformat()
-
         query = f"SELECT * FROM {table_name} WHERE {date_column} BETWEEN ? AND ?"
+        # Determine the join key based on the table name
+        join_key = "Código"  # Default join key
+        if table_name == "tratamientos":
+            join_key = "CódigoPaciente"
+            # Construct the query with a LEFT JOIN
+            query = f"""
+                SELECT t.*, dp.Nombre, dp.Apellido1, dp.Apellido2
+                FROM {table_name} t
+                LEFT JOIN datos_personales dp ON t.{join_key} = dp.Código
+                WHERE t.{date_column} BETWEEN ? AND ?
+            """
 
         cursor.execute(query, (start_date_str, end_date_str))
 
@@ -131,8 +142,7 @@ def get_treatments(db_path: str, start_date: datetime,
 def perform_appointment_checks(from_date, to_date):
     appointments = get_data_for_date_range("output/data.db", "citas", "Fecha", from_date, to_date)
     treatments = get_data_for_date_range("output/data.db", "tratamientos", "Fecharealizado", from_date, to_date)
-    # print(appointments)
-    # print(treatments)
+
     appointments = [
         appointment for appointment in appointments
         if appointment['Paciente'] not in (None, '')
@@ -159,6 +169,7 @@ def perform_appointment_checks(from_date, to_date):
 
     alerts = []
     # Iterate through dates and compare
+    # print(grouped_appointments.keys())
     all_dates = set(grouped_appointments.keys()).union(grouped_treatments.keys())
 
     for date in all_dates:
@@ -176,13 +187,15 @@ def perform_checks(appointments, treatments):
     alerts.extend(state_alerts)
     alerts.extend(treatment_alerts)
     alerts.extend(doctors_alerts)
+    # print(alerts)
     return alerts
 
 
 def check_state(appointments):
+    # print("Checking state...")
     allowed_statuses = {'Visita realizada', 'No ha venido', 'Cancelada'}
     alerts = []
-
+    # print(appointments)
     # Check `Estado` in doctoralia_appointments
     for appointment in appointments:
         if appointment['Estado'] not in allowed_statuses:
@@ -191,7 +204,7 @@ def check_state(appointments):
                 "message": f"El paciente {appointment['Paciente']} con fecha {appointment['Fecha']} no tiene estado en Visita realizada, No ha venido, o Cancelada",
                 "data": appointment
             })
-
+    # print(alerts)
     return alerts
 
 
@@ -207,32 +220,43 @@ def generate_suggestions(target_name: str, candidates: List[str]) -> List[str]:
 
 def check_treatments(appointments: List[Dict[str, Any]], treatments: List[Dict[str, Any]]) -> list[
     dict[str, str | dict[str, Any]]]:
+    # print("Checking treatments...")
     alerts = []
 
     # Build a list of normalized names from cliniwin_treatments
+    cliniwin_names = []
     for entry in treatments:
-        print(entry)
-    cliniwin_names = [
-        normalize_name(f"{entry['Nombre']} {entry['Apellido 1']} {entry['Apellido 2']}".strip())
-        for entry in treatments
-    ]
+        # Prioritize name from datos_personales, fallback to original name fields
+        if entry.get('Nombre') and entry.get('Apellido1'):
+            name = f"{entry['Nombre']} {entry['Apellido1']} {entry.get('Apellido2', '')}".strip()
+        else:
+            # Fallback to the original name fields if the join failed
+            name = f"{entry.get('Nombre', '')} {entry.get('Apellido 1', '')} {entry.get('Apellido 2', '')}".strip()
+        cliniwin_names.append(normalize_name(name))
+
 
     for appointment in appointments:
         # Process only appointments with 'Estado' == 'Visita realizada'
         if appointment['Estado'] != 'Visita realizada':
             continue
 
-        patient_name = normalize_name(appointment['Paciente'])
+        # Prioritize name from datos_personales, fallback to original 'Paciente' field
+        if appointment.get('Nombre') and appointment.get('Apellido1'):
+            patient_name_str = f"{appointment['Nombre']} {appointment['Apellido1']} {appointment.get('Apellido2', '')}".strip()
+        else:
+            patient_name_str = appointment['Paciente']
+
+        patient_name = normalize_name(patient_name_str)
 
         # Check if the patient is in cliniwin_treatments
         if patient_name not in cliniwin_names:
             suggestions = generate_suggestions(patient_name, cliniwin_names)
             alerts.append({
                 "type": "Tratamiento inexistente",
-                "message": f"El paciente {appointment['Paciente']} con fecha {appointment['Fecha']} no tiene un tratamiento realizado en Cliniwin. Sugerencias: {suggestions or 'Ninguna'}",
+                "message": f"El paciente {patient_name_str} con fecha {appointment['Fecha']} no tiene un tratamiento realizado en Cliniwin. Sugerencias: {suggestions or 'Ninguna'}",
                 "data": appointment
             })
-
+    # print(alerts)
     return alerts
 
 
@@ -246,23 +270,32 @@ def check_doctors(
         appointments: List[Dict[str, str]],
         treatments: List[Dict[str, str]]
 ) -> list[dict[str, str | dict[str, str]]]:
+    # print("Checking doctors...")
     alerts = []
-    logging.info(f'this is the treatments: {treatments}')
-    logging.info(f'this is the appointments: {appointments}')
+    # logging.info(f'this is the treatments: {treatments}')
+    # logging.info(f'this is the appointments: {appointments}')
 
     # Create a mapping of normalized names to cliniwin treatments
-    cliniwin_mapping = {
-        normalize_name(f"{entry['Nombre']} {entry['Apellido 1']} {entry['Apellido 2']}"):
-            entry for entry in treatments
-    }
+    cliniwin_mapping = {}
+    for entry in treatments:
+        if entry.get('Nombre') and entry.get('Apellido1'):
+            name = f"{entry['Nombre']} {entry['Apellido1']} {entry.get('Apellido2', '')}".strip()
+        else:
+            name = f"{entry.get('Nombre', '')} {entry.get('Apellido 1', '')} {entry.get('Apellido 2', '')}".strip()
+        cliniwin_mapping[normalize_name(name)] = entry
 
-    logging.info(f'this is the cliniwin mapping: {cliniwin_mapping}')
+    # logging.info(f'this is the cliniwin mapping: {cliniwin_mapping}')
     for appointment in appointments:
         if appointment['Estado'] != 'Visita realizada':
             continue
 
         # Normalize the patient name from Doctoralia
-        patient_name = normalize_name(appointment['Paciente'])
+        if appointment.get('Nombre') and appointment.get('Apellido1'):
+            patient_name_str = f"{appointment['Nombre']} {appointment['Apellido1']} {appointment.get('Apellido2', '')}".strip()
+        else:
+            patient_name_str = appointment['Paciente']
+        patient_name = normalize_name(patient_name_str)
+
 
         # Find the best match for the patient in Cliniwin
         matched_name = match_patient_name(patient_name, list(cliniwin_mapping.keys()))
@@ -271,21 +304,20 @@ def check_doctors(
             continue
 
         cliniwin_entry = cliniwin_mapping[matched_name]
-
         # Compare doctor numbers
         doctoralia_doctor_name = appointment['Especialista']
         doctoralia_doctor_number = [key for key, value in doctors.items() if value == doctoralia_doctor_name]
-        doctor_en_cliniwin = cliniwin_entry['Num. Doctor']
+        doctor_en_cliniwin = cliniwin_entry['NumDoctor']
         # que no sea el doctor 18 que es claudia
         if doctoralia_doctor_number and doctoralia_doctor_number[
             0] != doctor_en_cliniwin and doctor_en_cliniwin != '18':
             cliniwin_doctor_name = doctors.get(doctor_en_cliniwin, "Desconocido")
             alerts.append({
                 "type": "Doctor erroneo",
-                "message": f"Doctor no coincide para el paciente {appointment['Paciente']}: Doctoralia ({doctoralia_doctor_name}) vs. Cliniwin ({cliniwin_doctor_name}).",
+                "message": f"Doctor no coincide para el paciente {patient_name_str}: Doctoralia ({doctoralia_doctor_name}) vs. Cliniwin ({cliniwin_doctor_name}).",
                 "data": appointment
             })
-
+    # print(alerts)
     return alerts
 
 

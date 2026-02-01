@@ -42,11 +42,13 @@ def parse_html_to_db(file_source, db_name, table_name, file_name="<stream>"):
 
         # Specific modification for 'tratamientos' table
         if table_name == "tratamientos":
-            if len(df.columns) > 0 and df.columns[0] == "Código":
-                df.rename(columns={"Código": "CódigoPaciente"}, inplace=True)
+            columns = df.columns.tolist()
+            if "Código" in columns:
+                # Find the first occurrence of "Código" and rename it
+                first_occurrence_index = columns.index("Código")
+                columns[first_occurrence_index] = "CódigoPaciente"
+                df.columns = columns
                 print(f"Renamed first column 'Código' to 'CódigoPaciente' for table '{table_name}'.")
-
-        print(df.columns)
         # Connect to SQLite database
         conn = sqlite3.connect(db_name)
         cursor = conn.cursor()
