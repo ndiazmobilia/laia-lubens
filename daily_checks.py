@@ -65,6 +65,7 @@ def get_data_for_date_range(db_path: str, table_name: str, date_column: str, sta
         start_date_str = start_date.isoformat()
         end_date_str = end_date.isoformat()
         query = f"SELECT * FROM {table_name} WHERE {date_column} BETWEEN ? AND ?"
+        print(query)
         # Determine the join key based on the table name
         join_key = "Código"  # Default join key
         if table_name == "tratamientos":

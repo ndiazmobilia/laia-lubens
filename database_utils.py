@@ -22,6 +22,7 @@ def parse_html_to_db(file_source, db_name, table_name, file_name="<stream>"):
             return
 
         df = tables[0]
+        print(df.columns.tolist())
 
         # Set the first data row as column headers
         df.columns = df.iloc[0]
@@ -49,6 +50,8 @@ def parse_html_to_db(file_source, db_name, table_name, file_name="<stream>"):
                 columns[first_occurrence_index] = "CódigoPaciente"
                 df.columns = columns
                 print(f"Renamed first column 'Código' to 'CódigoPaciente' for table '{table_name}'.")
+
+
         # Connect to SQLite database
         conn = sqlite3.connect(db_name)
         cursor = conn.cursor()
@@ -65,8 +68,9 @@ def parse_html_to_db(file_source, db_name, table_name, file_name="<stream>"):
 
             for col_name, dtype in df.dtypes.items():
                 sql_type = "TEXT" # Default
-
-                if col_name == 'Código':
+                if table_name == "comisiones" and "Realizado" in col_name or "Cobrado" in col_name or "Seguro" in col_name or "Comisión" in col_name:
+                    sql_type = "REAL"
+                elif col_name == 'Código':
                     sql_type = "INTEGER"
                 elif 'Fecha' in col_name:
                     sql_type = "DATETIME"
@@ -355,22 +359,8 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
 
 # Example usage (for testing, will be removed when integrated into main.py)
 if __name__ == '__main__':
-    # file_path = 'examples/DatosPersonales-01.01.2020-31.12.2025.xls'
-    # file_path = 'examples/FechasPacientes-01.01.2023-31.12.2025.xls'
-    # file_path = 'examples/Cobros-Todo2026.xls'
-    # file_path = 'examples/Presupuestos-Todo-2026.xls'
-    # file_path = 'examples/Doctoralia-informe_de_citas-01 - 28 feb 2025 (1).xlsx'
-    # file_path = 'examples/exportarTratsExcel (18).xls'
-    # file_path = 'examples/Doctores.xlsx'
-    file_path = 'examples/Tratamientos_todo2026 2.xls'
-
+    file_path = 'examples/DatosPersonales-01.01.2020-31.12.2025.xls'
     db_name = 'output/data.db'
-    table_name = 'tratamientos'
-    # For testing parse_html_to_db
-    # with open('examples/DatosPersonales-01.01.2020-31.12.2025.xls', 'rb') as f:
-    #     parse_html_to_db(f, db_name, 'personal_data_test')
-
-    # For testing parse_xlsx_to_db
+    table_name = 'datos_personales'
     with open(file_path, 'rb') as f:
         parse_html_to_db(f, db_name, table_name)
-        # parse_xlsx_to_db(f, db_name, table_name)

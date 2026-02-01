@@ -8,7 +8,8 @@ from typing import Optional
 import config
 import database_utils
 import gdrive
-from daily_check import get_data_for_date_range
+
+from appointment_reminders import perform_appointment_reminders
 from daily_checks import perform_appointment_checks
 
 
@@ -207,6 +208,19 @@ async def reload_trabajos_laboratorios():
     return result
 
 
+@app.post("/reload_comisiones", tags=["Data Loading"])
+async def reload_comisiones():
+    """
+    Reloads data for the 'comisiones' source.
+    """
+    source_name = "comisiones"
+    table_name = "comisiones"
+    db_name = "output/data.db"
+    result = await _process_drive_source(source_name, table_name, db_name, database_utils.parse_html_to_db)
+    return result
+
+
+
 @app.post("/daily_checks", tags=["Data Loading"])
 async def daily_checks(request: DateRangeRequest):
     from_date = request.start_date
@@ -224,7 +238,20 @@ async def daily_checks(request: DateRangeRequest):
             "data": []
         }
 
-
+@app.get("/get_appointments_to_confirm", tags=["Data Loading"])
+def get_appointment_reminders():
+    logging.info(f"Get appointments to confirm...")
+    results = perform_appointment_reminders()
+    if results['success'] == 'true' and results['data']:
+        return {
+            "message": f"Found {len(results['data'])} results",
+            "data": results['data']
+        }
+    else:
+        return {
+            "message": f"No reminders found in the specified date range or an error occurred.",
+            "data": []
+        }
 
 
 
