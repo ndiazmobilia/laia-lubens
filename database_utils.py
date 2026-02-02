@@ -59,9 +59,9 @@ def parse_html_to_db(file_source, db_name, table_name, file_name="<stream>"):
         try:
             # Infer SQL types and create CREATE TABLE statement
             column_defs = []
-            primary_key_col = None
-            if 'Código' in df.columns: # Check for cleaned 'Código' column
-                primary_key_col = 'Código'
+            
+            if table_name == 'cobros':
+                column_defs.append('"id" INTEGER PRIMARY KEY AUTOINCREMENT')
 
             # Store inferred types for later use during insertion
             inferred_sql_types = {}
@@ -97,7 +97,7 @@ def parse_html_to_db(file_source, db_name, table_name, file_name="<stream>"):
 
                 inferred_sql_types[col_name] = sql_type
                 col_def = f'"{col_name}" {sql_type}'
-                if col_name == primary_key_col:
+                if col_name == 'Código' and table_name != 'cobros':
                     col_def += " PRIMARY KEY"
                 column_defs.append(col_def)
 
@@ -111,7 +111,11 @@ def parse_html_to_db(file_source, db_name, table_name, file_name="<stream>"):
             # Prepare for insertion (INSERT OR REPLACE for upsert)
             cols = ', '.join([f'"{c}"' for c in df.columns])
             placeholders = ', '.join(['?' for _ in df.columns])
-            insert_sql = f'INSERT OR REPLACE INTO {table_name} ({cols}) VALUES ({placeholders})'
+            
+            if table_name == 'cobros':
+                insert_sql = f'INSERT INTO {table_name} ({cols}) VALUES ({placeholders})'
+            else:
+                insert_sql = f'INSERT OR REPLACE INTO {table_name} ({cols}) VALUES ({placeholders})'
 
             # Iterate and insert/update data with type conversion
             for index, row in df.iterrows():
@@ -218,9 +222,8 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
         try:
             # Infer SQL types and create CREATE TABLE statement
             column_defs = []
-            primary_key_col = None
-            if 'Código' in df.columns: # Check for cleaned 'Código' column
-                primary_key_col = 'Código'
+            if table_name == 'cobros':
+                column_defs.append('"id" INTEGER PRIMARY KEY AUTOINCREMENT')
 
             # Store inferred types for later use during insertion
             inferred_sql_types = {}
@@ -257,7 +260,7 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
 
                 inferred_sql_types[col_name] = sql_type
                 col_def = f'"{col_name}" {sql_type}'
-                if col_name == primary_key_col:
+                if col_name == 'Código' and table_name != 'cobros':
                     col_def += " PRIMARY KEY"
                 column_defs.append(col_def)
 
@@ -271,7 +274,10 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
             # Prepare for insertion (INSERT OR REPLACE for upsert)
             cols = ', '.join([f'"{c}"' for c in df.columns])
             placeholders = ', '.join(['?' for _ in df.columns])
-            insert_sql = f'INSERT OR REPLACE INTO {table_name} ({cols}) VALUES ({placeholders})'
+            if table_name == 'cobros':
+                insert_sql = f'INSERT INTO {table_name} ({cols}) VALUES ({placeholders})'
+            else:
+                insert_sql = f'INSERT OR REPLACE INTO {table_name} ({cols}) VALUES ({placeholders})'
 
             # Iterate and insert/update data with type conversion
             for index, row in df.iterrows():

@@ -51,19 +51,19 @@ def extract_folder_id_from_url(url: str) -> str | None:
 
 def list_files_in_folder(service: Resource, folder_id: str) -> list[dict]:
     """
-    Lists all files within a specific Google Drive folder.
+    Lists all files within a specific Google Drive folder, sorted by creation time.
 
     :param service: The authenticated Google Drive service resource.
     :param folder_id: The ID of the folder to list files from.
-    :return: A list of file objects (dictionaries), now including mimeType.
+    :return: A list of file objects (dictionaries), now including mimeType and createdTime.
     """
     query = f"'{folder_id}' in parents and mimeType != 'application/vnd.google-apps.folder'"
     try:
         results = service.files().list(
             q=query,
             pageSize=100,  # Max 1000
-            # Fetched mimeType to differentiate between Google Sheets and other files
-            fields="nextPageToken, files(id, name, mimeType)"
+            orderBy="createdTime asc",  # Sort by upload date in ascending order
+            fields="nextPageToken, files(id, name, mimeType, createdTime)"
         ).execute()
         return results.get('files', [])
     except Exception as e:

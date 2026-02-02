@@ -9,3 +9,5 @@ google-auth-oauthlib
 python-dotenv
 SQLAlchemy
 python-dotenv
+streamlit
+plotly
