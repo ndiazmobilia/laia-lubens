@@ -260,11 +260,17 @@ def parse_xlsx_to_db(file_stream, db_name, table_name, file_name="<stream>"):
 
                 inferred_sql_types[col_name] = sql_type
                 col_def = f'"{col_name}" {sql_type}'
-                if col_name == 'Código' and table_name != 'cobros':
+                if col_name == 'Código' and table_name != 'cobros' and table_name != 'citas':
                     col_def += " PRIMARY KEY"
                 column_defs.append(col_def)
 
-            create_table_sql = f'CREATE TABLE IF NOT EXISTS {table_name} ({", ".join(column_defs)})'
+            column_definitions_str = ", ".join(column_defs)
+
+            if table_name == 'citas':
+                create_table_sql = f'CREATE TABLE IF NOT EXISTS {table_name} ({column_definitions_str}, PRIMARY KEY ("Fecha", "Hora", "Paciente"))'
+            else:
+                create_table_sql = f'CREATE TABLE IF NOT EXISTS {table_name} ({column_definitions_str})'
+
             # print(f"Created table sql '{create_table_sql}'")
             cursor.execute(create_table_sql)
 
